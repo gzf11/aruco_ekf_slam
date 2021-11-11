@@ -70,12 +70,18 @@ int main(int argc, char **argv)
     g_slam = new ArUcoEKFSLAM(K, dist, kl, kr, b, T_r_c, k, k_r, k_phi, n_markers, marker_size, marker_length);
     
     /***** 初始化消息发布 *****/
+    //发布路标位姿
     g_landmark_pub = nh.advertise<visualization_msgs::MarkerArray>( "ekf_slam/landmark", 1);
+    //发布小车位姿
     g_robot_pose_pub = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("ekf_slam/pose", 1);
+    //ros自带的转换图像的类
+    //https://blog.csdn.net/xhtchina/article/details/113878676
     image_transport::ImageTransport it(nh);
+    //发布图像数据
     g_img_pub = it.advertise("ekf_slam/image", 1);
         
     /***** 初始化消息订阅 *****/
+    //订阅图像和编解码消息
     ros::Subscriber image_sub = nh.subscribe(image_topic_name, 1, ImageCallback);
     ros::Subscriber encoder_sub = nh.subscribe(encoder_topic_name, 1, EncoderCallback);
     
@@ -88,12 +94,15 @@ int main(int argc, char **argv)
 
 void ImageCallback ( const sensor_msgs::ImageConstPtr& img_ptr )
 {
+    //ros消息转换为cv_ptr
     cv_bridge::CvImageConstPtr cv_ptr  = cv_bridge::toCvShare ( img_ptr );
     
     /* add image */
+    //将图像加入slam系统
     g_slam->addImage(cv_ptr->image);
    
     /* publish markerd image */
+    //输出有标记的图像
     cv::Mat img= g_slam->markedImg();
    sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", img).toImageMsg();
    g_img_pub.publish(msg);
